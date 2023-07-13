@@ -18,7 +18,7 @@ public:
 		input_data = nullptr;
 		output_data = nullptr;
 	}
-	virtual void random_originate(int min, int max) {
+	virtual void random_originate(double min, double max) {
 		if (output != nullptr) {
 			output->random_originate(min, max);
 		}

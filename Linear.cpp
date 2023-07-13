@@ -17,9 +17,8 @@ public:
 		Hidden_layer(in_features, out_features){
 		W = new double* [out_features];
 		for (int i = 0; i < out_features; i++)
-			W[i] = new double[in_features];
-		for (int i = 0; i < out_features; i++)
 		{
+			W[i] = new double[in_features];
 			for (int j = 0; j < in_features; j++)
 			{
 				W[i][j] = 0;
@@ -40,7 +39,7 @@ public:
 			}
 		}
 	}
-	void random_originate(int min, int max) {
+	void random_originate(double min, double max) {
 		srand(time(0));
 		for (int i = 0; i < out_features; i++)
 			for (int j = 0; j < in_features; j++)
@@ -64,15 +63,6 @@ public:
 		output->forward_once();
 	}
 	void backward_once(double* loss_gradient) {
-		if(W_gradient==nullptr){
-			W_gradient = new double* [out_features];
-			for (int i = 0; i < out_features; i++){
-				W_gradient[i] = new double[in_features];
-			}
-		}
-		if (b_gradient == nullptr) {
-			b_gradient = new double[out_features];
-		}
 		for (int i = 0; i < out_features; i++){
 			for (int j = 0; j < in_features; j++)
 			{

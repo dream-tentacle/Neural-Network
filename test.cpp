@@ -8,12 +8,12 @@
 #include "Linear.cpp"
 #include "ReLU.cpp"
 #include "Softmax.cpp"
-
+#include "CNN.cpp"
+const int train_size = 60000;
 std::vector<double> train_dataset,train_labelset,test_dataset,test_labelset;
 Input_layer input(28 * 28);
-Linear x1(28 * 28, 100);
-ReLU relu(100);
-Linear x3(100, 10);
+Convolutional_neural_network cnn(28, 28, 1, 8, 8, 4, 1);
+Linear x1(21 * 21 * 4, 10);
 Softmax_output_layer output(10);
 int cnt = 0;
 double rd() {
@@ -75,7 +75,7 @@ void originate() {
     cout<<" test data cin completed!\n";
     fclose(stdin);
     freopen("E:\\code\\c++\\AI\\Neural Network\\MNIST_data\\train_image.txt", "r", stdin);
-    for (int i = 1; i <= 60000; i++){
+    for (int i = 1; i <= train_size; i++){
         for (int j = 0; j < 28*28; j++){
             train_dataset.push_back(rd());
         }
@@ -121,16 +121,15 @@ int main() {
     originate();
     srand(time(0));
     if (train_dataset.size() == 0)return -1;
-    input.connect(&x1);
-    x1.connect(&relu);
-    relu.connect(&x3);
-    x3.connect(&output);
-    input.random_originate(-1, 1);
-    const int T = 60000;
+    input.connect(&cnn);
+    cnn.connect(&x1);
+    x1.connect(&output);
+    input.random_originate(-0.01, 0.01);
+    const int T = train_size;
     cnt = 0;
     double loss_accu = 0;
     double changing_lr = 0.01;
-    for (int epch = 0; epch < 3; epch++){
+    for (int epch = 0; epch < 1; epch++){
         cnt = 0;
         for (int i = 0; i < T; i++) {
             loss_accu += train_once(changing_lr);

@@ -127,6 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CNN.cpp" />
     <ClCompile Include="Layer.cpp" />
     <ClCompile Include="Linear.cpp" />
     <ClCompile Include="ReLU.cpp" />
