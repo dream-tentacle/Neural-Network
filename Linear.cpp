@@ -66,12 +66,12 @@ public:
 		for (int i = 0; i < out_features; i++){
 			for (int j = 0; j < in_features; j++)
 			{
-				W_gradient[i][j] = input_data[j] * loss_gradient[i];
+				W_gradient[i][j] = cut(input_data[j] * loss_gradient[i],-1.0,1.0);
 			}
 		}
 		for (int i = 0; i < out_features; i++)
 		{
-			b_gradient[i] = loss_gradient[i];
+			b_gradient[i] = cut(loss_gradient[i],-1.0,1.0);
 		}
 		double* next_loss_gradient = new double[in_features];
 		for (int i = 0; i < in_features; i++)
@@ -87,6 +87,7 @@ public:
 		//next_loss_gradient = nullptr;
 	}	
 	void print_gradient() {
+		puts("W_gradient: ");
 		for (int i = 0; i < out_features; i++)
 		{
 			for (int j = 0; j < in_features; j++)
@@ -98,6 +99,7 @@ public:
 		{
 			printf("%f%c", b_gradient[i], i == in_features - 1 ? '\n' : ' ');
 		}
+		puts("end");
 	}
 	void print_value() {
 		puts("value:");

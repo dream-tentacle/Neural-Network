@@ -14,10 +14,14 @@ const int train_size = 60000;
 const int test_size = 10000;
 std::vector<double> train_dataset,train_labelset,test_dataset,test_labelset;
 Input_layer input(28 * 28);
-Convolutional_neural_network cnn(28, 28, 1, 8, 8, 4, 1);
-Linear x1(21*21*4, 100);
-ReLU s(100);
-Linear x2(100, 10);
+Convolutional_neural_network cnn1(28, 28, 1, 3, 3, 8, 1);
+Max_pool pool1(26, 26, 8, 2);
+ReLU relu1(13 * 13 * 8);
+Convolutional_neural_network cnn2(13, 13, 8, 3, 3, 16, 1);
+Max_pool pool2(11, 11, 16, 2);
+ReLU relu2(5 * 5 * 16);
+Linear linear(5 * 5 * 16, 10);
+Linear l2(13 * 13 * 16, 10);
 Softmax_output_layer output(10);
 int cnt = 0;
 double rd() {
@@ -118,6 +122,8 @@ bool test_once() {
     for (int i = 0; i < 28 * 28; i++)
         input_dataset[i] = test_dataset[index * 28 * 28 + i];
     input.forward_once(input_dataset);
+    if (cnt % 1000 == 0)
+        std::cout << output.get_ans() << " " << test_labelset[index]<<std::endl;
     return output.get_ans() == int(test_labelset[index]);
 }
 using namespace std;
@@ -139,19 +145,21 @@ int main() {
     originate();
     srand(time(0));
     if (train_dataset.size() == 0)return -1;
-    input.connect(&cnn);
-    cnn.connect(&x1);
-    x1.connect(&s);
-    s.connect(&x2);
-    x2.connect(&output);
-    input.random_originate(-0.01, 0.01);
+    input.connect(&cnn1);
+    cnn1.connect(&pool1);
+    pool1.connect(&relu1);
+    relu1.connect(&cnn2);
+    cnn2.connect(&pool2);
+    pool2.connect(&relu2);
+    relu2.connect(&linear);
+    linear.connect(&output);
+    input.random_originate(-0.1, 0.1);
     const int T = train_size;
     double loss_accu = 0;
-    double changing_lr = 0.003;
+    double changing_lr = 0.01;
     char ctnue = 'y';
-    char show_loss = 'x';
+    char show_loss = 'y';
     cout << "show loss£¿y/n ";
-    cin >> show_loss;
     while (ctnue == 'y') {
         if (show_loss == 'y') {
             cnt = 0;
@@ -161,6 +169,12 @@ int main() {
                     printf("%d / %d: loss = %f\n", i + 1, T, loss_accu
                         / (T / 10 > 0 ? T / 10 : 1));
                     loss_accu = 0;
+                    //cnn1.print_gradient();
+                    //puts("");
+                    //cnn2.print_gradient();
+                    //puts("");
+                    //l2.print_gradient();
+                    //puts("");
                 }
             }
         }

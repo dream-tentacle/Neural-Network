@@ -18,15 +18,20 @@ public:
 		for (int i = 1; i < in_features; i++){
 			if (min_a > input_data[i])min_a = input_data[i];
 		}
-		if (min_a < 0)
-			min_a = 0;
+		//if (min_a < 0)
+		//	min_a = 0;
 		for (int i = 0; i < in_features; i++){
 			if(input_data[i] - min_a > CHOOSE_MAX)a_exp_sum += exp(CHOOSE_MAX);
 			else 
 				a_exp_sum += exp(input_data[i] - min_a);
-			if (isinf(a_exp_sum))printf("%f\n", input_data[i]);
+			if (isinf(a_exp_sum))printf("a_exp_sum is too large, \ninput_data: %f\n", input_data[i]);
 		}
-		if (a_exp_sum <= 0.0001)exit(-2);
+		if (a_exp_sum <= 0.00000000001) {
+			printf("a_exp_sum is too small\n%f", a_exp_sum);
+			for (int i = 0; i < in_features; i++)
+				printf("%f ", input_data[i]);
+			exit(-2);
+		}
 		for (int i = 0; i < in_features; i++){
 			if (input_data[i] - min_a > CHOOSE_MAX)
 				output_data[i] = exp(CHOOSE_MAX) / a_exp_sum;

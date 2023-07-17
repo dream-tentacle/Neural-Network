@@ -10,6 +10,11 @@ protected:
 	int in_features, out_features;
 	Layer* input, * output;
 	double* input_data,* output_data;
+	double cut(double number, double _min, double _max) {
+		if (number < _min)return _min;
+		if (number > _max)return _max;
+		return number;
+	}
 public:
 	Layer(int in_features, int out_features) :
 		in_features(in_features), out_features(out_features) { 

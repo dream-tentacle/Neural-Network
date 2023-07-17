@@ -1,5 +1,6 @@
 #ifndef CNN
 #define CNN
+#include<cstring>
 #include "Layer.cpp"
 class Convolutional_neural_network : public Hidden_layer
 {
@@ -18,8 +19,9 @@ public:
 		input_height(input_height), input_width(input_width),
 		input_channel(input_channel), kernel_height(kernel_height),
 		kernel_width(kernel_width), step_size(step_size), kernel_number(kernel_number),
-		Hidden_layer(input_height* input_width,
-			(input_height - kernel_height + 1)* (input_width - kernel_width + 1)
+		Hidden_layer(input_height* input_width* input_channel, 
+			(input_height - kernel_height + 1) / step_size *
+			(input_width - kernel_width + 1) / step_size
 			* kernel_number) {
 		W = new double*** [kernel_number];
 		b = new double[kernel_number];
@@ -71,13 +73,14 @@ public:
 		if (output_data == nullptr)output_data = new double[out_features];
 		const int n = kernel_number, x = input_height - kernel_height + 1,
 			y = input_width - kernel_width + 1;
+		int cnt = 0;
 		for (int i = 0; i < n; i++)
 		{
-			for (int j = 0; j < x; j++)
+			for (int j = 0; j < x; j+=step_size)
 			{
-				for (int k = 0; k < y; k++)
+				for (int k = 0; k < y; k+=step_size)
 				{
-					const int tmp = i * x * y + j * y + k;
+					const int tmp = cnt++;
 					output_data[tmp] = 0;
 					for (int ch = 0; ch < input_channel; ch++)
 					{
@@ -102,13 +105,14 @@ public:
 	void backward_once(double* loss_gradient) {
 		const int n = kernel_number, x = input_height - kernel_height + 1,
 			y = input_width - kernel_width + 1;
+		int cnt = 0;
 		for (int i = 0; i < n; i++)
 		{
-			for (int j = 0; j < x; j++)
+			for (int j = 0; j < x; j += step_size)
 			{
-				for (int k = 0; k < y; k++)
+				for (int k = 0; k < y; k += step_size)
 				{
-					const int tmp = i * x * y + j * y + k;
+					const int tmp = cnt++;
 					for (int ch = 0; ch < input_channel; ch++)
 					{
 						for (int input_y = 0; input_y < kernel_height; input_y++)
@@ -126,16 +130,27 @@ public:
 				}
 			}
 		}
+		for (int i = 0; i < kernel_number; i++) {
+			for (int ch = 0; ch < input_channel; ch++)
+				for (int input_y = 0; input_y < kernel_height; input_y++)
+					for (int input_x = 0; input_x < kernel_width; input_x++) {
+						W_gradient[i][ch][input_y][input_x] =
+							cut(W_gradient[i][ch][input_y][input_x], -1.0, 1.0);
+					}
+			b_gradient[i] = cut(b_gradient[i], -1.0, 1.0);
+		}
+
 		double* next_loss_gradient = new double[in_features];
 		for (int i = 0; i < in_features; i++)
 			next_loss_gradient[i] = 0;
+		cnt = 0;
 		for (int i = 0; i < n; i++)
 		{
-			for (int j = 0; j < x; j++)
+			for (int j = 0; j < x; j += step_size)
 			{
-				for (int k = 0; k < y; k++)
+				for (int k = 0; k < y; k += step_size)
 				{
-					const int tmp = i * x * y + j * y + k;
+					const int tmp = cnt++;
 					for (int ch = 0; ch < input_channel; ch++)
 					{
 						for (int input_y = 0; input_y < kernel_height; input_y++)
@@ -146,7 +161,7 @@ public:
 								next_loss_gradient[ch * input_height * input_width
 									+ (input_y + j) * input_width + input_x + k]
 									+= loss_gradient[tmp]
-									* W_gradient[i][ch][input_y][input_x];
+									* W[i][ch][input_y][input_x];
 							}
 						}
 					}
@@ -192,5 +207,88 @@ public:
 			output->learn(learning_rate);
 		}
 	}
+	void print_gradient() {
+		for (int i = 0; i < kernel_number; i++) {
+			printf("[");
+			for (int ch = 0; ch < input_channel; ch++) {
+				printf("[");
+				for (int input_y = 0; input_y < kernel_height; input_y++) {
+					printf("[");
+					for (int input_x = 0; input_x < kernel_width; input_x++) {
+						printf("%f ", W_gradient[i][ch][input_y][input_x]);
+					}
+					printf("],");
+				}
+				printf("],");
+			}
+			printf("],");
+		}
+		printf("[");
+		for (int i = 0; i < kernel_number; i++)
+		{
+			printf("%f%c", b_gradient[i], i == kernel_number - 1 ? ']' : ' ');
+		}
+	}
+};
+class Max_pool : public Hidden_layer
+{
+protected:
+	int input_height, input_width, input_channel;//The input picture's size
+	int pool_len;
+public:
+	Max_pool(int input_height, int input_width, int input_channel, int pool_len) :
+		input_height(input_height), input_width(input_width),
+		input_channel(input_channel),
+		pool_len(pool_len), Hidden_layer(input_height* input_width* input_channel,
+			(input_height / pool_len)* (input_width / pool_len)* input_channel) {}
+	void forward_once() {
+		if (output_data == nullptr)output_data = new double[out_features];
+		int cnt = 0;
+		for (int ch = 0; ch < input_channel; ch++) {
+			for (int i = 0; i < input_height - pool_len + 1; i += pool_len) {
+				for (int j = 0; j < input_width - pool_len + 1; j += pool_len) {
+					const int ch_offset = ch * input_height * input_width;
+					const int tmp = cnt++;
+					output_data[tmp] = input_data[ch_offset + i * input_width + j];
+					for (int a = i; a < i + pool_len; a++) {
+						for (int b = j; b < j + pool_len; b++) {
+							if (output_data[tmp] <
+								input_data[ch_offset + a * input_width + b])
+								output_data[tmp] =
+								input_data[ch_offset + a * input_width + b];
+						}
+					}
+				}
+			}
+		}
+		output->set_input_pointer(output_data);
+		output->forward_once();
+	}
+	void backward_once(double* loss) {
+		double* next_loss = new double[in_features];
+		for (int i = 0; i < in_features; i++)
+			next_loss[i] = 0;
+		int cnt = 0;
+		for (int ch = 0; ch < input_channel; ch++) {
+			for (int i = 0; i < input_height - pool_len + 1; i += pool_len) {
+				for (int j = 0; j < input_width - pool_len + 1; j += pool_len) {
+					const int ch_offset = ch * input_height * input_width;
+					int choose_max = ch_offset + i * input_width + j;
+					for (int a = i; a < i + pool_len; a++) {
+						for (int b = j; b < j + pool_len; b++) {
+							if (output_data[choose_max] <
+								input_data[ch_offset + a * input_width + b])
+								choose_max = ch_offset + a * input_width + b;
+						}
+					}
+					next_loss[choose_max] += loss[cnt++];
+				}
+			}
+		}
+		input->backward_once(next_loss);
+		delete[]next_loss;
+		//next_loss = nullptr;
+	}
+
 };
 #endif
