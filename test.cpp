@@ -21,7 +21,6 @@ Convolutional_neural_network cnn2(13, 13, 8, 3, 3, 16, 1);
 Max_pool pool2(11, 11, 16, 2);
 ReLU relu2(5 * 5 * 16);
 Linear linear(5 * 5 * 16, 10);
-Linear l2(13 * 13 * 16, 10);
 Softmax_output_layer output(10);
 int cnt = 0;
 double rd() {
@@ -176,6 +175,7 @@ int main() {
                     //l2.print_gradient();
                     //puts("");
                 }
+                load_animation(i / 100);
             }
         }
         else {
