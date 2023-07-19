@@ -113,6 +113,22 @@ double train_once(double learning_rate) {
     input.learn(learning_rate);
     return output.loss_sum();
 }
+double train_mini_batch(double learning_rate, int batch_size) {
+    double* input_dataset = new double[28 * 28];
+    input.zero_gradient();
+    double re = 0;
+    for (int batch = 1; batch <= batch_size; batch++) {
+        int index = rand() % train_size;
+        for (int i = 0; i < 28 * 28; i++) {
+            input_dataset[i] = train_dataset[index * 28 * 28 + i];
+        }
+        re += output.loss_sum();
+        input.forward_once(input_dataset);
+        output.backward_once(&train_labelset[index]);
+    }
+    input.learn(learning_rate / batch_size);
+    return re/batch_size;
+}
 bool test_once() {
     double* input_dataset = new double[28 * 28];
     int index = cnt++;
@@ -141,9 +157,14 @@ void load_animation(int t) {
     else cout << "\\";
 }
 int main() {
-    originate();
+    const int T = train_size;
+    const int batch_size = 32;
+    double loss_accu = 0;
+    double lr = 0.01;
+    int ctnue = 1;
+    cout << "How many times do you want to train first?\n";
+    cin >> ctnue;
     srand(time(0));
-    if (train_dataset.size() == 0)return -1;
     input.connect(&cnn1);
     cnn1.connect(&pool1);
     pool1.connect(&relu1);
@@ -153,32 +174,29 @@ int main() {
     relu2.connect(&linear);
     linear.connect(&output);
     input.random_originate(-0.1, 0.1);
-    const int T = train_size;
-    double loss_accu = 0;
-    double changing_lr = 0.01;
-    int ctnue = 1;
-    cout << "How many times do you want to train first?\n";
-    cin >> ctnue;
-    char show_loss = 'y';
+    originate();
     while (ctnue) {
-        if (show_loss == 'y') {
-            cnt = 0;
+        cnt = 0;
+        if(1)
+        for (int i = 1; i <= T/batch_size; i++) {
+            loss_accu += train_mini_batch(lr, batch_size);
+            cnt++;
+            if (i % (T /batch_size / 10 > 0 ? T / batch_size /  10 : 1) == 0) {
+                printf("\r%d / %d: loss = %f\n", i*batch_size, T, loss_accu
+                    / cnt);
+                loss_accu = 0;
+                cnt = 0;
+            }
+        }
+        else
             for (int i = 0; i < T; i++) {
-                loss_accu += train_once(changing_lr);
+                loss_accu += train_once(lr);
                 if ((i + 1) % (T / 10 > 0 ? T / 10 : 1) == 0) {
                     printf("\r%d / %d: loss = %f\n", i + 1, T, loss_accu
                         / (T / 10 > 0 ? T / 10 : 1));
                     loss_accu = 0;
                 }
             }
-        }
-        else {
-            cnt = 0;
-            for (int i = 0; i < T; i++) {
-                loss_accu += train_once(changing_lr);
-                load_animation(i / 100);
-            }
-        }
         const int test_T = 10000;
         int right = 0;
         cnt = 0;

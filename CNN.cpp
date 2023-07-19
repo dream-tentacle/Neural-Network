@@ -130,16 +130,6 @@ public:
 				}
 			}
 		}
-		for (int i = 0; i < kernel_number; i++) {
-			for (int ch = 0; ch < input_channel; ch++)
-				for (int input_y = 0; input_y < kernel_height; input_y++)
-					for (int input_x = 0; input_x < kernel_width; input_x++) {
-						W_gradient[i][ch][input_y][input_x] =
-							cut(W_gradient[i][ch][input_y][input_x], -1.0, 1.0);
-					}
-			b_gradient[i] = cut(b_gradient[i], -1.0, 1.0);
-		}
-
 		double* next_loss_gradient = new double[in_features];
 		for (int i = 0; i < in_features; i++)
 			next_loss_gradient[i] = 0;

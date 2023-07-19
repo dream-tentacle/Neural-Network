@@ -66,12 +66,12 @@ public:
 		for (int i = 0; i < out_features; i++){
 			for (int j = 0; j < in_features; j++)
 			{
-				W_gradient[i][j] = cut(input_data[j] * loss_gradient[i],-1.0,1.0);
+				W_gradient[i][j] += input_data[j] * loss_gradient[i];
 			}
 		}
 		for (int i = 0; i < out_features; i++)
 		{
-			b_gradient[i] = cut(loss_gradient[i],-1.0,1.0);
+			b_gradient[i] +=loss_gradient[i];
 		}
 		double* next_loss_gradient = new double[in_features];
 		for (int i = 0; i < in_features; i++)
