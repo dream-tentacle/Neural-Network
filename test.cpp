@@ -14,16 +14,16 @@ const int train_size = 60000;
 const int test_size = 10000;
 std::vector<double> train_dataset,train_labelset,test_dataset,test_labelset;
 Input_layer input(28 * 28);
-Convolutional_neural_network cnn1(28, 28, 1, 3, 3, 8, 1);
-Max_pool pool1(26, 26, 8, 2);
-ReLU relu1(13 * 13 * 8);
-Convolutional_neural_network cnn2(13, 13, 8, 3, 3, 16, 1);
-Max_pool pool2(11, 11, 16, 2);
-ReLU relu2(5 * 5 * 16);
-Linear linear(5 * 5 * 16, 10);
+Convolutional_neural_network cnn1(28, 28, 1, 3, 3, 16, 1);
+Max_pool pool1(26, 26, 16, 2);
+Leaky_ReLU relu1(13 * 13 * 16);
+Convolutional_neural_network cnn2(13, 13, 16, 3, 3, 32, 1);
+Max_pool pool2(11, 11, 32, 2);
+Leaky_ReLU relu2(5 * 5 * 32);
+Linear linear(5 * 5 * 32, 10);
 Softmax_output_layer output(10);
 int cnt = 0;
-double rd() {
+double rd(double minus = 0) {
 #define isdigit(p) ((p)<='9'&&(p)>='0')
     char x = getchar();
     double re = 0;
@@ -42,7 +42,7 @@ double rd() {
             t *= 0.1;
         }
     }
-    return re;
+    return re - minus;
 }
 void originate() {
     using namespace std;
@@ -67,7 +67,7 @@ void originate() {
     for (int i = 1; i <= test_size; i++)
     {
         for (int j = 0; j < 28 * 28; j++){
-            test_dataset.push_back(rd());
+            test_dataset.push_back(rd(0.5));
         }
         if (i % 100 == 0){
             cout << "\r";
@@ -85,7 +85,7 @@ void originate() {
     freopen("E:\\code\\c++\\AI\\Neural Network\\MNIST_data\\train_image.txt", "r", stdin);
     for (int i = 1; i <= train_size; i++){
         for (int j = 0; j < 28*28; j++){
-            train_dataset.push_back(rd());
+            train_dataset.push_back(rd(0.5));
         }
         if(i%100==0){
             cout << "\r";
@@ -156,26 +156,20 @@ int main() {
     const int T = train_size;
     double loss_accu = 0;
     double changing_lr = 0.01;
-    char ctnue = 'y';
+    int ctnue = 1;
+    cout << "How many times do you want to train first?\n";
+    cin >> ctnue;
     char show_loss = 'y';
-    cout << "show loss£¿y/n ";
-    while (ctnue == 'y') {
+    while (ctnue) {
         if (show_loss == 'y') {
             cnt = 0;
             for (int i = 0; i < T; i++) {
                 loss_accu += train_once(changing_lr);
                 if ((i + 1) % (T / 10 > 0 ? T / 10 : 1) == 0) {
-                    printf("%d / %d: loss = %f\n", i + 1, T, loss_accu
+                    printf("\r%d / %d: loss = %f\n", i + 1, T, loss_accu
                         / (T / 10 > 0 ? T / 10 : 1));
                     loss_accu = 0;
-                    //cnn1.print_gradient();
-                    //puts("");
-                    //cnn2.print_gradient();
-                    //puts("");
-                    //l2.print_gradient();
-                    //puts("");
                 }
-                load_animation(i / 100);
             }
         }
         else {
@@ -193,8 +187,11 @@ int main() {
         }
         cout << "\r                                ";
         cout << "\raccuracy: " << right * 1.0 / test_T << endl;
-        cout<<"continue training£¿y/n ";
-        cin >> ctnue;
+        ctnue--;
+        if (ctnue == 0) {
+            cout << "How many times do you want to continue training?\n";
+            cin >> ctnue;
+        }
     }
     
     return 0;

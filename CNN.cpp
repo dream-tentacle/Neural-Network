@@ -276,7 +276,7 @@ public:
 					int choose_max = ch_offset + i * input_width + j;
 					for (int a = i; a < i + pool_len; a++) {
 						for (int b = j; b < j + pool_len; b++) {
-							if (output_data[choose_max] <
+							if (input_data[choose_max] <
 								input_data[ch_offset + a * input_width + b])
 								choose_max = ch_offset + a * input_width + b;
 						}
