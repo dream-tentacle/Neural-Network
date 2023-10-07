@@ -13,29 +13,32 @@ protected:
 	double* b;
 	double**** W_gradient = nullptr;
 	double* b_gradient = nullptr;
+	int padding;
 public:
 	Convolutional_neural_network(int input_height, int input_width, int input_channel,
-		int kernel_height, int kernel_width, int kernel_number, int step_size) :
+		int kernel_height, int kernel_width, int kernel_number, int step_size = 1,
+		int padding = 0) :
 		input_height(input_height), input_width(input_width),
 		input_channel(input_channel), kernel_height(kernel_height),
 		kernel_width(kernel_width), step_size(step_size), kernel_number(kernel_number),
-		Hidden_layer(input_height* input_width* input_channel, 
-			(input_height - kernel_height + 1) / step_size *
-			(input_width - kernel_width + 1) / step_size
+		padding(padding), Hidden_layer(input_height* input_width* input_channel,
+			(input_height - kernel_height + 1 + 2 * padding) / step_size *
+			(input_width - kernel_width + 1 + 2 * padding) / step_size
 			* kernel_number) {
 		W = new double*** [kernel_number];
 		b = new double[kernel_number];
 		W_gradient = new double*** [kernel_number];
 		b_gradient = new double[kernel_number];
-		for (int i = 0; i < kernel_number; i++){
+		for (int i = 0; i < kernel_number; i++) {
 			W[i] = new double** [input_channel];
-			for (int j = 0; j < input_channel; j++){
+			for (int j = 0; j < input_channel; j++) {
 				W[i][j] = new double* [kernel_height];
-				for (int k = 0; k < kernel_height; k++){
+				for (int k = 0; k < kernel_height; k++) {
 					W[i][j][k] = new double[kernel_width];
-					for (int l = 0; l < kernel_width; l++){
+					for (int l = 0; l < kernel_width; l++) {
 						W[i][j][k][l] = 0;
-;					}
+						;
+					}
 				}
 			}
 		}
@@ -60,7 +63,7 @@ public:
 		srand(time(0));
 		for (int i = 0; i < kernel_number; i++)
 			for (int j = 0; j < input_channel; j++)
-				for (int k = 0; k < kernel_height; k++) 
+				for (int k = 0; k < kernel_height; k++)
 					for (int l = 0; l < kernel_width; l++)
 						W[i][j][k][l] = (max - min) * 1.0 * rand() / RAND_MAX + min;
 		for (int j = 0; j < kernel_number; j++)
@@ -71,14 +74,15 @@ public:
 	}
 	void forward_once() {
 		if (output_data == nullptr)output_data = new double[out_features];
-		const int n = kernel_number, x = input_height - kernel_height + 1,
-			y = input_width - kernel_width + 1;
+		const int n = kernel_number, x = input_height - kernel_height + 1 + 2 * padding,
+			y = input_width - kernel_width + 1 + 2 * padding;
+#define position(a,b,c) (a*input_height*input_width+b*input_width+c)
 		int cnt = 0;
 		for (int i = 0; i < n; i++)
 		{
-			for (int j = 0; j < x; j+=step_size)
+			for (int j = 0; j < x; j += step_size)
 			{
-				for (int k = 0; k < y; k+=step_size)
+				for (int k = 0; k < y; k += step_size)
 				{
 					const int tmp = cnt++;
 					output_data[tmp] = 0;
@@ -88,10 +92,14 @@ public:
 						{
 							for (int input_x = 0; input_x < kernel_width; input_x++)
 							{
-								
-								output_data[tmp] += input_data[ch * input_height * input_width
-									+ (input_y + j) * input_width + input_x + k]
-									* W[i][ch][input_y][input_x];
+								if (j - padding + input_y >= 0 &&
+									k - padding + input_x >= 0 &&
+									j - padding + input_y < input_height &&
+									k - padding + input_x < input_width)
+									output_data[tmp] += input_data[
+										position(ch, j - padding + input_y,
+											k - padding + input_x)
+									] * W[i][ch][input_y][input_x];
 							}
 						}
 					}
@@ -103,8 +111,8 @@ public:
 		output->forward_once();
 	}
 	void backward_once(double* loss_gradient) {
-		const int n = kernel_number, x = input_height - kernel_height + 1,
-			y = input_width - kernel_width + 1;
+		const int n = kernel_number, x = input_height - kernel_height + 1 + 2 * padding,
+			y = input_width - kernel_width + 1 + 2 * padding;
 		int cnt = 0;
 		for (int i = 0; i < n; i++)
 		{
@@ -119,10 +127,15 @@ public:
 						{
 							for (int input_x = 0; input_x < kernel_width; input_x++)
 							{
-								W_gradient[i][ch][input_y][input_x] +=
-									input_data[ch * input_height * input_width
-									+ (input_y + j) * input_width + input_x + k]
-									* loss_gradient[tmp];
+								if (j - padding + input_y >= 0 &&
+									k - padding + input_x >= 0 &&
+									j - padding + input_y < input_height &&
+									k - padding + input_x < input_width)
+									W_gradient[i][ch][input_y][input_x] +=
+									input_data[
+										position(ch, j - padding + input_y,
+											k - padding + input_x)
+									] * loss_gradient[tmp];
 							}
 						}
 					}
@@ -147,11 +160,16 @@ public:
 						{
 							for (int input_x = 0; input_x < kernel_width; input_x++)
 							{
-								
-								next_loss_gradient[ch * input_height * input_width
-									+ (input_y + j) * input_width + input_x + k]
-									+= loss_gradient[tmp]
-									* W[i][ch][input_y][input_x];
+								if (j - padding + input_y >= 0 &&
+									k - padding + input_x >= 0 &&
+									j - padding + input_y < input_height &&
+									k - padding + input_x < input_width)
+									next_loss_gradient[
+										position(ch, j - padding + input_y,
+											k - padding + input_x)
+									] +=
+									cut(loss_gradient[tmp] * W[i][ch][input_y][input_x]
+										, -1, 1);
 							}
 						}
 					}
@@ -195,28 +213,6 @@ public:
 		}
 		if (output != nullptr) {
 			output->learn(learning_rate);
-		}
-	}
-	void print_gradient() {
-		for (int i = 0; i < kernel_number; i++) {
-			printf("[");
-			for (int ch = 0; ch < input_channel; ch++) {
-				printf("[");
-				for (int input_y = 0; input_y < kernel_height; input_y++) {
-					printf("[");
-					for (int input_x = 0; input_x < kernel_width; input_x++) {
-						printf("%f ", W_gradient[i][ch][input_y][input_x]);
-					}
-					printf("],");
-				}
-				printf("],");
-			}
-			printf("],");
-		}
-		printf("[");
-		for (int i = 0; i < kernel_number; i++)
-		{
-			printf("%f%c", b_gradient[i], i == kernel_number - 1 ? ']' : ' ');
 		}
 	}
 };

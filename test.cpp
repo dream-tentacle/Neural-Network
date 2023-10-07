@@ -107,7 +107,7 @@ double train_once(double learning_rate) {
     index %= train_size;
     input.zero_gradient();
     for (int i = 0; i < 28 * 28; i++)
-        input_dataset[i] = train_dataset[index * 28 * 28 + i];
+        input_dataset[i] = train_dataset[index * 784 + i];
     input.forward_once(input_dataset);
     output.backward_once(&train_labelset[index]);
     input.learn(learning_rate);
@@ -118,9 +118,9 @@ double train_mini_batch(double learning_rate, int batch_size) {
     input.zero_gradient();
     double re = 0;
     for (int batch = 1; batch <= batch_size; batch++) {
-        int index = rand() % train_size;
+        int index = (cnt++) % train_size;
         for (int i = 0; i < 28 * 28; i++) {
-            input_dataset[i] = train_dataset[index * 28 * 28 + i];
+            input_dataset[i] = train_dataset[index * 784 + i];
         }
         re += output.loss_sum();
         input.forward_once(input_dataset);
@@ -158,13 +158,13 @@ void load_animation(int t) {
 }
 int main() {
     const int T = train_size;
-    const int batch_size = 32;
+    const int batch_size = 1;
     double loss_accu = 0;
     double lr = 0.01;
     int ctnue = 1;
     cout << "How many times do you want to train first?\n";
     cin >> ctnue;
-    srand(time(0));
+    srand(111111);
     input.connect(&cnn1);
     cnn1.connect(&pool1);
     pool1.connect(&relu1);

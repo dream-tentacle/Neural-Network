@@ -79,7 +79,7 @@ public:
 			next_loss_gradient[i] = 0;
 			for (int j = 0; j < out_features; j++)
 			{
-				next_loss_gradient[i] += loss_gradient[j] * W[j][i];
+				next_loss_gradient[i] += cut(loss_gradient[j] * W[j][i],-1,1);
 			}
 		}
 		input->backward_once(next_loss_gradient);
